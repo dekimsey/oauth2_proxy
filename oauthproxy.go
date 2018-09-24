@@ -46,6 +46,8 @@ var SignatureHeaders = []string{
 	"X-Forwarded-User",
 	"X-Forwarded-Email",
 	"X-Forwarded-Access-Token",
+	"X-Forwarded-Groups",
+	"X-Forwarded-Roles",
 	"Cookie",
 	"Gap-Auth",
 }
@@ -826,6 +828,8 @@ func (p *OAuthProxy) addHeadersForProxying(rw http.ResponseWriter, req *http.Req
 		} else {
 			req.Header.Del("X-Forwarded-Email")
 		}
+		req.Header.Set("X-Forwarded-Groups", strings.Join(session.Groups, "|"))
+		req.Header.Set("X-Forwarded-Roles", strings.Join(session.Roles, "|"))
 	}
 
 	if p.PassUserHeaders {
@@ -844,6 +848,18 @@ func (p *OAuthProxy) addHeadersForProxying(rw http.ResponseWriter, req *http.Req
 		} else {
 			rw.Header().Del("X-Auth-Request-Email")
 		}
+		if len(session.Groups) != 0 {
+			rw.Header().Set("X-Auth-Request-Groups", strings.Join(session.Groups, ","))
+		}
+		else {
+			rw.Header().Del("X-Auth-Request-Groups")
+		}
+		if len(session.Roles) != 0 {
+			rw.Header().Set("X-Auth-Request-Roles", strings.Join(session.Roles, ","))
+		}
+		else {
+			rw.Header().Del("X-Auth-Request-Roles")
+		}
 
 		if p.PassAccessToken {
 			if session.AccessToken != "" {
@@ -852,6 +868,7 @@ func (p *OAuthProxy) addHeadersForProxying(rw http.ResponseWriter, req *http.Req
 				rw.Header().Del("X-Auth-Request-Access-Token")
 			}
 		}
+
 	}
 
 	if p.PassAccessToken {

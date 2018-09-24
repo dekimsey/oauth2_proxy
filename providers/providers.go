@@ -32,6 +32,8 @@ func New(provider string, p *ProviderData) Provider {
 		return NewKeycloakProvider(p)
 	case "azure":
 		return NewAzureProvider(p)
+	case "azure-v2.0":
+		return NewAzureV2Provider(p)
 	case "gitlab":
 		return NewGitLabProvider(p)
 	case "oidc":

@@ -19,6 +19,8 @@ type SessionState struct {
 	RefreshToken string    `json:",omitempty"`
 	Email        string    `json:",omitempty"`
 	User         string    `json:",omitempty"`
+	Roles        []string  `json:",omitempty"`
+	Groups       []string  `json:",omitempty"`
 }
 
 // SessionStateJSON is used to encode SessionState into JSON without exposing time.Time zero value
@@ -61,6 +63,12 @@ func (s *SessionState) String() string {
 	}
 	if s.RefreshToken != "" {
 		o += " refresh_token:true"
+	}
+	if len(s.Roles) != 0 {
+		o += fmt.Sprintf(" roles:%v", s.Roles)
+	}
+	if len(s.Groups) != 0 {
+		o += fmt.Sprintf(" groups:%v", s.Groups)
 	}
 	return o + "}"
 }
