@@ -76,31 +76,32 @@ type OAuthProxy struct {
 	OAuthCallbackPath string
 	AuthOnlyPath      string
 
-	redirectURL         *url.URL // the url to receive requests at
-	whitelistDomains    []string
-	provider            providers.Provider
-	sessionStore        sessionsapi.SessionStore
-	ProxyPrefix         string
-	SignInMessage       string
-	HtpasswdFile        *HtpasswdFile
-	DisplayHtpasswdForm bool
-	serveMux            http.Handler
-	SetXAuthRequest     bool
-	PassBasicAuth       bool
-	SkipProviderButton  bool
-	PassUserHeaders     bool
-	BasicAuthPassword   string
-	PassAccessToken     bool
-	SetAuthorization    bool
-	PassAuthorization   bool
-	skipAuthRegex       []string
-	skipAuthPreflight   bool
-	skipJwtBearerTokens bool
-	jwtBearerVerifiers  []*oidc.IDTokenVerifier
-	compiledRegex       []*regexp.Regexp
-	templates           *template.Template
-	Banner              string
-	Footer              string
+	redirectURL              *url.URL // the url to receive requests at
+	whitelistDomains         []string
+	provider                 providers.Provider
+	sessionStore             sessionsapi.SessionStore
+	ProxyPrefix              string
+	SignInMessage            string
+	HtpasswdFile             *HtpasswdFile
+	DisplayHtpasswdForm      bool
+	serveMux                 http.Handler
+	SetXAuthRequest          bool
+	PassBasicAuth            bool
+	SkipProviderButton       bool
+	PassUserHeaders          bool
+	BasicAuthPassword        string
+	PassAccessToken          bool
+	SetAuthorization         bool
+	PassAuthorization        bool
+	skipAuthRegex            []string
+	skipAuthPreflight        bool
+	skipJwtBearerTokens      bool
+	skipJwtBearerTokenHeader string
+	jwtBearerVerifiers       []*oidc.IDTokenVerifier
+	compiledRegex            []*regexp.Regexp
+	templates                *template.Template
+	Banner                   string
+	Footer                   string
 }
 
 // UpstreamProxy represents an upstream server to proxy to
@@ -267,28 +268,29 @@ func NewOAuthProxy(opts *Options, validator func(string) bool) *OAuthProxy {
 		OAuthCallbackPath: fmt.Sprintf("%s/callback", opts.ProxyPrefix),
 		AuthOnlyPath:      fmt.Sprintf("%s/auth", opts.ProxyPrefix),
 
-		ProxyPrefix:         opts.ProxyPrefix,
-		provider:            opts.provider,
-		sessionStore:        opts.sessionStore,
-		serveMux:            serveMux,
-		redirectURL:         redirectURL,
-		whitelistDomains:    opts.WhitelistDomains,
-		skipAuthRegex:       opts.SkipAuthRegex,
-		skipAuthPreflight:   opts.SkipAuthPreflight,
-		skipJwtBearerTokens: opts.SkipJwtBearerTokens,
-		jwtBearerVerifiers:  opts.jwtBearerVerifiers,
-		compiledRegex:       opts.CompiledRegex,
-		SetXAuthRequest:     opts.SetXAuthRequest,
-		PassBasicAuth:       opts.PassBasicAuth,
-		PassUserHeaders:     opts.PassUserHeaders,
-		BasicAuthPassword:   opts.BasicAuthPassword,
-		PassAccessToken:     opts.PassAccessToken,
-		SetAuthorization:    opts.SetAuthorization,
-		PassAuthorization:   opts.PassAuthorization,
-		SkipProviderButton:  opts.SkipProviderButton,
-		templates:           loadTemplates(opts.CustomTemplatesDir),
-		Banner:              opts.Banner,
-		Footer:              opts.Footer,
+		ProxyPrefix:              opts.ProxyPrefix,
+		provider:                 opts.provider,
+		sessionStore:             opts.sessionStore,
+		serveMux:                 serveMux,
+		redirectURL:              redirectURL,
+		whitelistDomains:         opts.WhitelistDomains,
+		skipAuthRegex:            opts.SkipAuthRegex,
+		skipAuthPreflight:        opts.SkipAuthPreflight,
+		skipJwtBearerTokens:      opts.SkipJwtBearerTokens,
+		skipJwtBearerTokenHeader: opts.SkipJwtBearerTokenHeader,
+		jwtBearerVerifiers:       opts.jwtBearerVerifiers,
+		compiledRegex:            opts.CompiledRegex,
+		SetXAuthRequest:          opts.SetXAuthRequest,
+		PassBasicAuth:            opts.PassBasicAuth,
+		PassUserHeaders:          opts.PassUserHeaders,
+		BasicAuthPassword:        opts.BasicAuthPassword,
+		PassAccessToken:          opts.PassAccessToken,
+		SetAuthorization:         opts.SetAuthorization,
+		PassAuthorization:        opts.PassAuthorization,
+		SkipProviderButton:       opts.SkipProviderButton,
+		templates:                loadTemplates(opts.CustomTemplatesDir),
+		Banner:                   opts.Banner,
+		Footer:                   opts.Footer,
 	}
 }
 
@@ -728,10 +730,10 @@ func (p *OAuthProxy) getAuthenticatedSession(rw http.ResponseWriter, req *http.R
 	var err error
 	var saveSession, clearSession, revalidated bool
 
-	if p.skipJwtBearerTokens && req.Header.Get("Authorization") != "" {
+	if p.skipJwtBearerTokens && req.Header.Get(p.skipJwtBearerTokenHeader) != "" {
 		session, err = p.GetJwtSession(req)
 		if err != nil {
-			logger.Printf("Error retrieving session from token in Authorization header: %s", err)
+			logger.Printf("Error retrieving session from token in `%s` header: %s", p.skipJwtBearerTokenHeader, err)
 		}
 		if session != nil {
 			saveSession = false
@@ -949,23 +951,28 @@ func (p *OAuthProxy) GetJwtSession(req *http.Request) (*sessionsapi.SessionState
 		}
 		return session, nil
 	}
-	return nil, fmt.Errorf("unable to verify jwt token %s", req.Header.Get("Authorization"))
+	return nil, fmt.Errorf("unable to verify jwt token %s", req.Header.Get(p.skipJwtBearerTokenHeader))
 }
 
 // findBearerToken finds a valid JWT token from the Authorization header of a given request.
 func (p *OAuthProxy) findBearerToken(req *http.Request) (string, error) {
-	auth := req.Header.Get("Authorization")
+	auth := req.Header.Get(p.skipJwtBearerTokenHeader)
 	s := strings.SplitN(auth, " ", 2)
-	if len(s) != 2 {
-		return "", fmt.Errorf("invalid authorization header %s", auth)
+	var tokenType, tokenBlob string
+	if len(s) == 1 {
+		tokenType = "Bearer"
+		tokenBlob = s[0]
+	} else if len(s) == 2 {
+		tokenType = s[0]
+		tokenBlob = s[1]
 	}
 	jwtRegex := regexp.MustCompile(`^eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]+$`)
 	var rawBearerToken string
-	if s[0] == "Bearer" && jwtRegex.MatchString(s[1]) {
-		rawBearerToken = s[1]
-	} else if s[0] == "Basic" {
+	if tokenType == "Bearer" && jwtRegex.MatchString(tokenBlob) {
+		rawBearerToken = tokenBlob
+	} else if tokenType == "Basic" {
 		// Check if we have a Bearer token masquerading in Basic
-		b, err := b64.StdEncoding.DecodeString(s[1])
+		b, err := b64.StdEncoding.DecodeString(tokenBlob)
 		if err != nil {
 			return "", err
 		}

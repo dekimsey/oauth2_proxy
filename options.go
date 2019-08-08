@@ -65,6 +65,7 @@ type Options struct {
 	Upstreams                     []string      `flag:"upstream" cfg:"upstreams" env:"OAUTH2_PROXY_UPSTREAMS"`
 	SkipAuthRegex                 []string      `flag:"skip-auth-regex" cfg:"skip_auth_regex" env:"OAUTH2_PROXY_SKIP_AUTH_REGEX"`
 	SkipJwtBearerTokens           bool          `flag:"skip-jwt-bearer-tokens" cfg:"skip_jwt_bearer_tokens" env:"OAUTH2_PROXY_SKIP_JWT_BEARER_TOKENS"`
+	SkipJwtBearerTokenHeader      string        `flag:"skip-jwt-bearer-token-header" cfg:"skip_jwt_bearer_token_header" env:"OAUTH2_PROXY_SKIP_JWT_BEARER_TOKEN_HEADER"`
 	ExtraJwtIssuers               []string      `flag:"extra-jwt-issuers" cfg:"extra_jwt_issuers" env:"OAUTH2_PROXY_EXTRA_JWT_ISSUERS"`
 	PassBasicAuth                 bool          `flag:"pass-basic-auth" cfg:"pass_basic_auth" env:"OAUTH2_PROXY_PASS_BASIC_AUTH"`
 	BasicAuthPassword             string        `flag:"basic-auth-password" cfg:"basic_auth_password" env:"OAUTH2_PROXY_BASIC_AUTH_PASSWORD"`
@@ -178,6 +179,7 @@ func NewOptions() *Options {
 		RequestLoggingFormat:             logger.DefaultRequestLoggingFormat,
 		AuthLogging:                      true,
 		AuthLoggingFormat:                logger.DefaultAuthLoggingFormat,
+		SkipJwtBearerTokenHeader:         "Authorization",
 	}
 }
 

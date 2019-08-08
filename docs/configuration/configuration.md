@@ -97,6 +97,7 @@ Usage of oauth2_proxy:
   -skip-auth-preflight: will skip authentication for OPTIONS requests
   -skip-auth-regex value: bypass authentication for requests path's that match (may be given multiple times)
   -skip-jwt-bearer-tokens: will skip requests that have verified JWT bearer tokens
+  -skip-jwt-bearer-token-header: HTTP header containing the Bearer token (default "Authorization")
   -skip-oidc-discovery: bypass OIDC endpoint discovery. login-url, redeem-url and oidc-jwks-url must be configured in this case
   -skip-provider-button: will skip sign-in-page to directly reach the next step: oauth/start
   -ssl-insecure-skip-verify: skip validation of certificates presented when using HTTPS providers

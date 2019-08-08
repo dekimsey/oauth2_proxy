@@ -1176,6 +1176,51 @@ func (NoOpKeySet) VerifySignature(ctx context.Context, jwt string) (payload []by
 	return []byte(jsonString), err
 }
 
+func TestGetJwtSessionWithHeader(t *testing.T) {
+	/* token payload:
+	{
+	  "sub": "1234567890",
+	  "aud": "https://test.myapp.com",
+	  "name": "John Doe",
+	  "email": "john@example.com",
+	  "iss": "https://issuer.example.com",
+	  "iat": 1553691215,
+	  "exp": 1912151821
+	}
+	*/
+	goodJwt := "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9." +
+		"eyJzdWIiOiIxMjM0NTY3ODkwIiwiYXVkIjoiaHR0cHM6Ly90ZXN0Lm15YXBwLmNvbSIsIm5hbWUiOiJKb2huIERvZSIsImVtY" +
+		"WlsIjoiam9obkBleGFtcGxlLmNvbSIsImlzcyI6Imh0dHBzOi8vaXNzdWVyLmV4YW1wbGUuY29tIiwiaWF0IjoxNTUzNjkxMj" +
+		"E1LCJleHAiOjE5MTIxNTE4MjF9." +
+		"rLVyzOnEldUq_pNkfa-WiV8TVJYWyZCaM2Am_uo8FGg11zD7l-qmz3x1seTvqpH6Y0Ty00fmv6dJnGnC8WMnPXQiodRTfhBSe" +
+		"OKZMu0HkMD2sg52zlKkbfLTO6ic5VnbVgwjjrB8am_Ta6w7kyFUaB5C1BsIrrLMldkWEhynbb8"
+
+	keyset := NoOpKeySet{}
+	verifier := oidc.NewVerifier("https://issuer.example.com", keyset,
+		&oidc.Config{ClientID: "https://test.myapp.com", SkipExpiryCheck: true})
+
+	test := NewAuthOnlyEndpointTest(func(opts *Options) {
+		opts.SkipJwtBearerTokens = true
+		opts.SkipJwtBearerTokenHeader = "x-amazing-odic-data"
+		opts.jwtBearerVerifiers = append(opts.jwtBearerVerifiers, verifier)
+	})
+	tp, _ := test.proxy.provider.(*TestProvider)
+	tp.GroupValidator = func(s string) bool {
+		return true
+	}
+
+	test.req.Header = map[string][]string{
+		"x-amazing-oidc-data": {goodJwt},
+	}
+
+	// Bearer
+	session, _ := test.proxy.GetJwtSession(test.req)
+	t.Fatalf("%v", session)
+	if session.User != "john@example.com" {
+		t.Fatalf("expected custom jwt session to parse a token correctly, got %s", session.User)
+	}
+}
+
 func TestGetJwtSession(t *testing.T) {
 	/* token payload:
 	{
