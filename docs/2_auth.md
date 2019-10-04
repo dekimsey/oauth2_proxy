@@ -13,6 +13,7 @@ Valid providers are :
 
 - [Google](#google-auth-provider) _default_
 - [Azure](#azure-auth-provider)
+- [Azure v2](#azure-v2-auth-provider)
 - [Facebook](#facebook-auth-provider)
 - [GitHub](#github-auth-provider)
 - [Keycloak](#keycloak-auth-provider)
@@ -80,6 +81,9 @@ Note: The user is checked against the group members list on initial authenticati
    --client-id=<application ID from step 3>
    --client-secret=<value from step 6>
 ```
+#### Azure v2 Auth Provider
+
+Azure v2 requires a valid `--azure-tenant=`. Aliases such as "common", "organization", and "consumers" will NOT work due to strict ODIC interpretation. See [MicrosoftDocs/azure-docs#38427](https://github.com/MicrosoftDocs/azure-docs/issues/38427).
 
 ### Facebook Auth Provider
 

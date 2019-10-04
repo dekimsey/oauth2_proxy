@@ -396,8 +396,12 @@ func parseProviderInfo(o *Options, msgs []string) []string {
 	o.provider = providers.New(o.Provider, p)
 	switch p := o.provider.(type) {
 	case *providers.AzureProvider:
-	case *providers.Azure_v2Provider:
 		p.Configure(o.AzureTenant)
+	case *providers.AzureV2Provider:
+		err := p.Configure(o.AzureTenant)
+		if err != nil {
+			msgs = append(msgs, err.Error())
+		}
 	case *providers.GitHubProvider:
 		p.SetOrgTeam(o.GitHubOrg, o.GitHubTeam)
 	case *providers.KeycloakProvider:
