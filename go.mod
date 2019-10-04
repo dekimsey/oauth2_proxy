@@ -84,4 +84,5 @@ require (
 	gopkg.in/square/go-jose.v2 v2.1.3
 	mvdan.cc/unparam v0.0.0-20190310220240-1b9ccfa71afe // indirect
 	sourcegraph.com/sqs/pbtypes v1.0.0 // indirect
+	github.com/google/uuid v1.1.1
 )

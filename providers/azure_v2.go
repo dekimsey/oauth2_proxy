@@ -2,7 +2,6 @@ package providers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
@@ -18,30 +17,20 @@ type AzureV2Provider struct {
 
 	Tenant          string
 	PermittedGroups []string
+	oidcProvider    *oidc.Provider
+}
+
+type AzureV2AdditionalClaims struct {
+	Roles  []string `json:"roles"`
+	Groups []string `json:"groups"`
 }
 
 func NewAzureV2Provider(p *ProviderData) *AzureV2Provider {
 	p.ProviderName = "Azure v2"
-	return &AzureV2Provider{ProviderData: p, OIDCProvider: &OIDCProvider{ProviderData: p}}
-}
-
-func (p *AzureV2Provider) Redeem(redirectURL, code string) (s *sessions.SessionState, err error) {
-	s, err = p.OIDCProvider.Redeem(redirectURL, code)
-	if err != nil {
-		return nil, fmt.Errorf("OIDCProvider failed to redeem code: %v", err)
+	return &AzureV2Provider{
+		ProviderData: p,
+		OIDCProvider: &OIDCProvider{ProviderData: p},
 	}
-
-	// Extract Azure claims.
-	// https://docs.microsoft.com/en-us/azure/active-directory/develop/id-tokens
-	var claims struct {
-		Roles  []string `json:"roles"`
-		Groups []string `json:"groups"`
-	}
-	json.Unmarshal([]byte(s.IDToken), &claims)
-	s.Roles = claims.Roles
-	s.Groups = claims.Groups
-	log.Printf("Session: %v", s)
-	return
 }
 
 func (p *AzureV2Provider) Configure(tenant string) error {
@@ -72,24 +61,53 @@ func (p *AzureV2Provider) Configure(tenant string) error {
 	if err != nil {
 		return fmt.Errorf("Unable to parse OIDC Token URL: %v", err)
 	}
-	p.ProfileURL, err = url.Parse("https://graph.microsoft.com/oidc/userinfo")
-	if err != nil {
-		return fmt.Errorf("Unable to parse OIDC UserInfo URL: %v", err)
-	}
+	// Note: oidc doesn't make public the UserInfo endpoint from the discovery lookup
+	// p.ProfileURL, err = url.Parse("https://graph.microsoft.com/oidc/userinfo")
+	// if err != nil {
+	// 	return fmt.Errorf("Unable to parse OIDC UserInfo URL: %v", err)
+	// }
 	if p.Scope == "" {
-		p.Scope = "openid"
+		// Note: oauth2-proxy makes `email` a required default scope
+		p.Scope = oidc.ScopeOpenID + " email"
 	}
 	return nil
+}
+
+func (p *AzureV2Provider) addAdditionalClaims(s *sessions.SessionState) (error) {
+	// Extract additional claims.
+	// https://docs.microsoft.com/en-us/azure/active-directory/develop/id-tokens
+	// s.IDToken is actually the raw token, we need the parsed version!
+	ctx := context.Background()
+	idToken, err := p.Verifier.Verify(ctx, s.IDToken)
+	if err != nil {
+		// I'm not sure how this can ever happen to be honest.
+		return fmt.Errorf("Failed to verify ID token: %v", err)
+	}
+
+	claims := AzureV2AdditionalClaims{}
+	err = idToken.Claims(&claims)
+	if err != nil {
+		return fmt.Errorf("Failed to read additional claims from id token: %v", err)
+	}
+	s.Roles = claims.Roles
+	s.Groups = claims.Groups
+	return nil
+}
+
+func (p *AzureV2Provider) Redeem(redirectURL, code string) (s *sessions.SessionState, err error) {
+	s, err = p.OIDCProvider.Redeem(redirectURL, code)
+	if err != nil {
+		return nil, fmt.Errorf("OIDCProvider failed to redeem code: %v", err)
+	}
+	err = p.addAdditionalClaims(s)
+
+	return
 }
 
 func (p *AzureV2Provider) RefreshSessionIfNeeded(s *sessions.SessionState) (bool, error) {
 	p.OIDCProvider.RefreshSessionIfNeeded(s)
 
-	// re-check that the user is in the proper group(s)
-	if !p.ValidateGroup(s.Email) {
-		return false, fmt.Errorf("%s is no longer in the group(s)", s.Email)
-	}
-
+	// TODO: GroupValidator takes a user's email as the input.
 	return true, nil
 }
 

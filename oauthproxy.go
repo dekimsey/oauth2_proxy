@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"log"
 
 	"github.com/coreos/go-oidc"
 	"github.com/mbland/hmacauth"
@@ -327,9 +328,12 @@ func (p *OAuthProxy) redeemCode(host, code string) (s *sessionsapi.SessionState,
 	if err != nil {
 		return
 	}
-
+	log.Printf("Session: %v", s)
 	if s.Email == "" {
 		s.Email, err = p.provider.GetEmailAddress(s)
+		if err != nil && err.Error() == "not implemented" {
+			err = nil
+		}
 	}
 
 	if s.User == "" {
