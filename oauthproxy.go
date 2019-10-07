@@ -832,8 +832,6 @@ func (p *OAuthProxy) addHeadersForProxying(rw http.ResponseWriter, req *http.Req
 		} else {
 			req.Header.Del("X-Forwarded-Email")
 		}
-		req.Header.Set("X-Forwarded-Groups", strings.Join(session.Groups, "|"))
-		req.Header.Set("X-Forwarded-Roles", strings.Join(session.Roles, "|"))
 	}
 
 	if p.PassUserHeaders {
@@ -842,6 +840,16 @@ func (p *OAuthProxy) addHeadersForProxying(rw http.ResponseWriter, req *http.Req
 			req.Header["X-Forwarded-Email"] = []string{session.Email}
 		} else {
 			req.Header.Del("X-Forwarded-Email")
+		}
+		if len(session.Groups) != 0 {
+			req.Header.Set("X-Forwarded-Groups", strings.Join(session.Groups, ","))
+		} else {
+			req.Header.Del("X-Forwarded-Groups")
+		}
+		if len(session.Roles) != 0 {
+			req.Header.Set("X-Forwarded-Roles", strings.Join(session.Roles, ","))
+		} else {
+			req.Header.Del("X-Forwarded-Roles")
 		}
 	}
 

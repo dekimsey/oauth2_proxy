@@ -89,6 +89,7 @@ func (p *AzureV2Provider) addAdditionalClaims(s *sessions.SessionState) (error) 
 	if err != nil {
 		return fmt.Errorf("Failed to read additional claims from id token: %v", err)
 	}
+
 	s.Roles = claims.Roles
 	s.Groups = claims.Groups
 	return nil
@@ -99,16 +100,14 @@ func (p *AzureV2Provider) Redeem(redirectURL, code string) (s *sessions.SessionS
 	if err != nil {
 		return nil, fmt.Errorf("OIDCProvider failed to redeem code: %v", err)
 	}
+
 	err = p.addAdditionalClaims(s)
 
 	return
 }
 
 func (p *AzureV2Provider) RefreshSessionIfNeeded(s *sessions.SessionState) (bool, error) {
-	p.OIDCProvider.RefreshSessionIfNeeded(s)
-
-	// TODO: GroupValidator takes a user's email as the input.
-	return true, nil
+	return p.OIDCProvider.RefreshSessionIfNeeded(s)
 }
 
 func (p *AzureV2Provider) ValidateSessionState(s *sessions.SessionState) bool {

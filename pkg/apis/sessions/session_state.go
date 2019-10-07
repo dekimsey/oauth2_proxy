@@ -113,6 +113,12 @@ func (s *SessionState) EncodeSessionState(c *encryption.Cipher) (string, error) 
 				return "", err
 			}
 		}
+		// if len(ss.Groups) != 0 {
+		// 	ss.Groups = ss.Groups
+		// }
+		// if len(ss.Roles) != 0 {
+		// 	ss.Roles = ss.Roles
+		// }
 	}
 	// Embed SessionState and ExpiresOn pointer into SessionStateJSON
 	ssj := &SessionStateJSON{SessionState: &ss}
@@ -243,6 +249,12 @@ func DecodeSessionState(v string, c *encryption.Cipher) (*SessionState, error) {
 				return nil, err
 			}
 		}
+		// if len(ss.Groups) != 0 {
+		// 	ss.Groups = ss.Groups
+		// }
+		// if len(ss.Roles) != 0 {
+		// 	ss.Roles = ss.Roles
+		// }
 	}
 	if ss.User == "" {
 		ss.User = ss.Email
