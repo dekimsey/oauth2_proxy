@@ -16,13 +16,12 @@ type AzureV2Provider struct {
 	*OIDCProvider
 
 	Tenant          string
-	PermittedGroups []string
+	PermittedRoles []string
 	oidcProvider    *oidc.Provider
 }
 
 type AzureV2AdditionalClaims struct {
 	Roles  []string `json:"roles"`
-	Groups []string `json:"groups"`
 }
 
 func NewAzureV2Provider(p *ProviderData) *AzureV2Provider {
@@ -95,7 +94,6 @@ func (p *AzureV2Provider) addAdditionalClaims(s *sessions.SessionState) (error) 
 	}
 
 	s.Roles = claims.Roles
-	s.Groups = claims.Groups
 	return nil
 }
 

@@ -20,7 +20,6 @@ type SessionState struct {
 	Email        string    `json:",omitempty"`
 	User         string    `json:",omitempty"`
 	Roles        []string  `json:",omitempty"`
-	Groups       []string  `json:",omitempty"`
 }
 
 // SessionStateJSON is used to encode SessionState into JSON without exposing time.Time zero value
@@ -67,9 +66,6 @@ func (s *SessionState) String() string {
 	if len(s.Roles) != 0 {
 		o += fmt.Sprintf(" roles:%v", s.Roles)
 	}
-	if len(s.Groups) != 0 {
-		o += fmt.Sprintf(" groups:%v", s.Groups)
-	}
 	return o + "}"
 }
 
@@ -113,12 +109,6 @@ func (s *SessionState) EncodeSessionState(c *encryption.Cipher) (string, error) 
 				return "", err
 			}
 		}
-		// if len(ss.Groups) != 0 {
-		// 	ss.Groups = ss.Groups
-		// }
-		// if len(ss.Roles) != 0 {
-		// 	ss.Roles = ss.Roles
-		// }
 	}
 	// Embed SessionState and ExpiresOn pointer into SessionStateJSON
 	ssj := &SessionStateJSON{SessionState: &ss}
@@ -249,12 +239,6 @@ func DecodeSessionState(v string, c *encryption.Cipher) (*SessionState, error) {
 				return nil, err
 			}
 		}
-		// if len(ss.Groups) != 0 {
-		// 	ss.Groups = ss.Groups
-		// }
-		// if len(ss.Roles) != 0 {
-		// 	ss.Roles = ss.Roles
-		// }
 	}
 	if ss.User == "" {
 		ss.User = ss.Email
