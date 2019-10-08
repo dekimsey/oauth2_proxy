@@ -3,7 +3,7 @@ package providers
 import (
 	"context"
 	"fmt"
-	"log"
+	"strings"
 	"net/url"
 
 	oidc "github.com/coreos/go-oidc"
@@ -62,14 +62,18 @@ func (p *AzureV2Provider) Configure(tenant string) error {
 		return fmt.Errorf("Unable to parse OIDC Token URL: %v", err)
 	}
 	// Note: oidc doesn't make public the UserInfo endpoint from the discovery lookup
-	// p.ProfileURL, err = url.Parse("https://graph.microsoft.com/oidc/userinfo")
-	// if err != nil {
-	// 	return fmt.Errorf("Unable to parse OIDC UserInfo URL: %v", err)
-	// }
-	if p.Scope == "" {
-		// Note: oauth2-proxy makes `email` a required default scope
-		p.Scope = oidc.ScopeOpenID + " email"
+	p.ProfileURL, err = url.Parse("https://graph.microsoft.com/oidc/userinfo")
+	if err != nil {
+		return fmt.Errorf("Unable to parse OIDC UserInfo URL: %v", err)
 	}
+	// ODIC spec requires the ScopeOpenID scope (`openid`).
+	if ! strings.Contains(p.Scope, oidc.ScopeOpenID) {
+		p.Scope = oidc.ScopeOpenID + " " + p.Scope
+	}
+	// if p.Scope == "" {
+	// 	// Note: oauth2-proxy makes `email` a required default scope
+	// 	p.Scope = oidc.ScopeOpenID + " email"
+	// }
 	return nil
 }
 
